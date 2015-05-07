@@ -1,0 +1,49 @@
+{% extends "main.html" %}
+{% block content %}
+{% include "header.html" %}
+<script>
+function readURL(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      $('#card-image')
+        .attr('src', e.target.result)
+        .width(150)
+        .height(200);
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+<!-- http://stackoverflow.com/questions/5802580/html-input-type-file-get-the-image-before-submitting-the-form -->
+	<div class="row divider green">
+		<div class="col-md-12"></div>
+	</div>
+	<div class="row banner menu">
+		<div class="col-md-11 col-md-offset-1 padding-none">
+			<h1>Show Menu Item</h1>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-md-6 col-md-offset-1 padding-top">
+				<input name=_csrf_token type=hidden value="{{ csrf_token() }}">
+				<div class="form-group">
+					<p>Name:</p>
+					{{item.name }}
+
+					<p>Description:</p>
+					{{item.description}}
+
+					<p>Price:</p>
+					{{item.price}}
+					<p>Image:</p>
+					<img id="card-image" src="{{ item.imageURL() }}" width="150" height="200" alt="Image Not Found">
+					<br>
+					<p>Category:</p>
+					{{item.categoryName()}}
+					<a href="{{url_for('editMenuItem', menu_id=item.id  ) }}">Edit</a> | 
+					<a href="{{url_for('deleteMenuItem', menu_id=item.id  ) }}">Delete</a>
+				</div>
+		</div>
+	</div>
+{% endblock %}
