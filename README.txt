@@ -1,18 +1,15 @@
-!!!This is the experimental final project please use the step2 code from lesson 4 for a more stable version!!!
-
 
 To run this project
 
-1. Navigate to the Full-Stack-Foundations/Lesson-4/Final-Project directory inside the vagrant environment
+1. Navigate to the catalog directory inside the vagrant environment
 
-2. run database_setup.py to create the database
+2. run database_setup.py to reset the database
 
-3. run lotsofmenus.py to populate the database
+To install the required python libraries...
+3. sudo pip install flask-wtf
+4. sudo pip install oauth2client
 
-4a. sudo pip install flask-wtf
-4b. sudo pip install oauth2client
-
-5. run finalproject.py and navigate to localhost:5000 in your browser
+5. run finalproject.py and navigate to 127.0.0.1:5000 in your browser
 
 For adding OAuth handling
 
