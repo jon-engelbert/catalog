@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect,jsonify, url_for, flash, g, abort
 app = Flask(__name__)
 
+from flask.ext.sqlalchemy import SQLAlchemy
+
 from flask_wtf.csrf import CsrfProtect
 from flask_wtf import Form
 from flask_wtf.file import FileField, FileAllowed, FileRequired
@@ -20,7 +22,8 @@ import json
 from flask import make_response
 import requests
 import os
-from database_setup import Base, Category, MenuItem, User, create_app, create_db
+from database_setup import Base, Category, MenuItem, User, create_db
+from sqlalchemy.engine.url import URL
 import settings
 
 
@@ -30,6 +33,23 @@ UPLOADS_FOLDER = "/static/images"
 UPLOADS_DEFAULT_DEST = "static/images"
 
 csrf = CsrfProtect()
+
+
+def create_app():
+    """Initializes the database."""
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = URL(**settings.DATABASE)
+    app.config['SESSION_TYPE'] = 'filesystem'
+    return app
+
+def init(db_filename):
+  """Initializes the database."""
+  app = Flask(__name__)
+  app.config['SQLALCHEMY_DATABASE_URI'] = db_filename
+  app.config['SESSION_TYPE'] = 'filesystem'
+  db = SQLAlchemy(app)
+  db.create_all()
+  return db
 
 
 def allowed_file(filename):
@@ -558,9 +578,10 @@ if __name__ == '__main__':
   CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
   APPLICATION_NAME = "Category Menu Application"
-  app = create_app()
+  # app.db_session = init('sqlite:///catalog.db').session
+  create_app()
   Session = create_db(app)
-  app.db_session = Session()
+  session = app.db_session = Session()
   csrf.init_app(app)
   app.secret_key = 'super_secret_key'
   app.debug = True

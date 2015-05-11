@@ -33,7 +33,7 @@ def create_db(app):
     Performs database connection using database settings from settings.py.
     Returns sqlalchemy engine instance
     """
-    print ("in create_db")
+    print ("in create_db: Database URL {}".format(URL(**settings.DATABASE)))
     engine = create_engine(URL(**settings.DATABASE))
     #create database session
     Base.metadata.bind = engine
