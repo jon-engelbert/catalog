@@ -7,16 +7,41 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
+from sqlalchemy.engine.url import URL
+
+import settings
+
 # from finalproject import UPLOADS_FOLDER
 UPLOAD_FOLDER = "/static/images"
  
 Base = declarative_base()
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///catalog.db'
-db = SQLAlchemy(app)
+# app = Flask(__name__)
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///catalog.db'
+# db = SQLAlchemy(app)
 
-class User(db.Model):
+
+def create_app():
+    """Initializes the database."""
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = URL(**settings.DATABASE)
+    app.config['SESSION_TYPE'] = 'filesystem'
+    return app
+
+def create_db(app):
+    """
+    Performs database connection using database settings from settings.py.
+    Returns sqlalchemy engine instance
+    """
+    print ("in create_db")
+    engine = create_engine(URL(**settings.DATABASE))
+    #create database session
+    Base.metadata.bind = engine
+    Base.metadata.create_all(engine)
+    Session = app.db_session = sessionmaker(bind=engine)
+    return Session
+
+class User(Base):
     __tablename__ = 'user'
    
     id = Column(Integer, primary_key=True)
@@ -62,7 +87,7 @@ class User(db.Model):
 
 
 
-class Category(db.Model):
+class Category(Base):
     __tablename__ = 'category'
    
     id = Column(Integer, primary_key=True)
@@ -86,7 +111,7 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category %r>' % self.name
 
-class MenuItem(db.Model):
+class MenuItem(Base):
     __tablename__ = 'menu_item'
 
 
@@ -141,7 +166,9 @@ class MenuItem(db.Model):
         
 
 if __name__ == '__main__':
-  db.create_all()
-  db.session.commit()
-  print("created tables")
+    app = create_app()
+    Session = create_db(app)
+    # db.create_all()
+    # db.session.commit()
+    print("created tables")
 

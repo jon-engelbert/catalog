@@ -4,7 +4,6 @@ app = Flask(__name__)
 from flask_wtf.csrf import CsrfProtect
 from flask_wtf import Form
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import scoped_session, sessionmaker
 from werkzeug import secure_filename
@@ -21,7 +20,8 @@ import json
 from flask import make_response
 import requests
 import os
-from database_setup import Base, Category, MenuItem, User
+from database_setup import Base, Category, MenuItem, User, create_app, create_db
+import settings
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -29,8 +29,8 @@ ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 UPLOADS_FOLDER = "/static/images"
 UPLOADS_DEFAULT_DEST = "static/images"
 
-app.config['UPLOAD_FOLDER'] = UPLOADS_FOLDER
 csrf = CsrfProtect()
+
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -45,14 +45,7 @@ def set_login_session_user_id(userid):
   print ("In set_login_session_user_id: {}".format(login_session))
 
 
-def init(db_filename):
-  """Initializes the database."""
-  app = Flask(__name__)
-  app.config['SQLALCHEMY_DATABASE_URI'] = db_filename
-  app.config['SESSION_TYPE'] = 'filesystem'
-  db = SQLAlchemy(app)
-  db.create_all()
-  return db
+
 
 
 # Create a state token to prevent request forgery.
@@ -561,14 +554,17 @@ def createUser(login_session, db_session):
 #   return login_session['_csrf_token']
 
 if __name__ == '__main__':
-  app.secret_key = 'super_secret_key'
   WTF_CSRF_ENABLED = True
-  app.debug = True
   CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
   APPLICATION_NAME = "Category Menu Application"
-  app.db_session = init('sqlite:///catalog.db').session
+  app = create_app()
+  Session = create_db(app)
+  app.db_session = Session()
   csrf.init_app(app)
+  app.secret_key = 'super_secret_key'
+  app.debug = True
+  app.config['UPLOAD_FOLDER'] = UPLOADS_FOLDER
   # app.jinja_env.globals['csrf_token'] = generate_csrf_token    
   # print("csrf_token: {}".format(csrf_token()))    
-  app.run(host = '127.0.0.1', port = 8000)
+  app.run(host = '127.0.0.1', port = 5000)
