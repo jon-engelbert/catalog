@@ -21,13 +21,6 @@ Base = declarative_base()
 # db = SQLAlchemy(app)
 
 
-def create_app():
-    """Initializes the database."""
-    app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = URL(**settings.DATABASE)
-    app.config['SESSION_TYPE'] = 'filesystem'
-    return app
-
 def create_db(app):
     """
     Performs database connection using database settings from settings.py.
@@ -38,7 +31,7 @@ def create_db(app):
     #create database session
     Base.metadata.bind = engine
     Base.metadata.create_all(engine)
-    Session = app.db_session = sessionmaker(bind=engine)
+    Session = sessionmaker(bind=engine)
     return Session
 
 class User(Base):

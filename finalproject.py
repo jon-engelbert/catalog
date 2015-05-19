@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect,jsonify, url_for, flash, g, abort
 app = Flask(__name__)
 
-from flask.ext.sqlalchemy import SQLAlchemy
+# from flask.ext.sqlalchemy import SQLAlchemy
 
 from flask_wtf.csrf import CsrfProtect
 from flask_wtf import Form

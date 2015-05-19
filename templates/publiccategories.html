@@ -40,6 +40,7 @@
 	<div class = "leftcol">
 		<h2>Card Categories</h2>
 		{% for category in categories %}
+			<a href = "{{url_for('showMenu', category_id = category.id)}}">
 				<div class="row">
 					<div class="col-md-1"></div>
 						<div class="col-md-10 category-list">
@@ -47,6 +48,7 @@
 						</div>
 					<div class="col-md-1"></div>
 				</div>
+			</a>
 		{% endfor %}
 	</div>
 	<div class = "column">
