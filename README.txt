@@ -1,6 +1,3 @@
-!!!This is the experimental final project please use the step2 code from lesson 4 for a more stable version!!!
-
-
 To run this project
 
 1. Navigate to the Full-Stack-Foundations/Lesson-4/Final-Project directory inside the vagrant environment
