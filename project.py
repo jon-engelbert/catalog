@@ -1,11 +1,10 @@
 from flask import Flask, render_template, request, redirect,jsonify, url_for, flash, g, abort
 app = Flask(__name__)
 
-# from flask.ext.sqlalchemy import SQLAlchemy
-
 from flask_wtf.csrf import CsrfProtect
 from flask_wtf import Form
 from flask_wtf.file import FileField, FileAllowed, FileRequired
+from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import scoped_session, sessionmaker
 from werkzeug import secure_filename
@@ -22,9 +21,7 @@ import json
 from flask import make_response
 import requests
 import os
-from database_setup import Base, Category, MenuItem, User, create_db
-from sqlalchemy.engine.url import URL
-import settings
+from database_setup import Base, Category, MenuItem, User
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -32,16 +29,24 @@ ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 UPLOADS_FOLDER = "/static/images"
 UPLOADS_DEFAULT_DEST = "static/images"
 
+app.config['UPLOAD_FOLDER'] = UPLOADS_FOLDER
 csrf = CsrfProtect()
 
+# helper method to determine if a file is a valid image file
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
-def create_app():
-    """Initializes the database."""
-    app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = URL(**settings.DATABASE)
-    app.config['SESSION_TYPE'] = 'filesystem'
-    return app
+# helper method to set the database session
+def set_db_session(session):
+  app.db_session = session
 
+# helper method to set the login session user id
+def set_login_session_user_id(userid):
+  login_session['user_id'] = userid
+  print ("In set_login_session_user_id: {}".format(login_session))
+
+# helper method to initialize the database for the sqlAlchemy ORM
 def init(db_filename):
   """Initializes the database."""
   app = Flask(__name__)
@@ -50,22 +55,6 @@ def init(db_filename):
   db = SQLAlchemy(app)
   db.create_all()
   return db
-
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
-
-def set_db_session(session):
-  app.db_session = session
-
-def set_login_session_user_id(userid):
-  app.secret_key = 'super_secret_key'
-  login_session['user_id'] = userid
-  print ("In set_login_session_user_id: {}".format(login_session))
-
-
-
 
 
 # Create a state token to prevent request forgery.
@@ -77,9 +66,12 @@ def showLogin():
     login_session['state'] = state
     return render_template('login.html', STATE=state)
 
+# Login the user using google oauth2 authentication.
+# the 'state' parameter is used for csrf protection
+# the 'one time code' comes from google's oauth2 server, and it's used to get credentials from google+, including email and picture.
+# relevant parameters are stored in the login session for future requests.
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
-  
   print 'In gconnect: received state of %s' %request.args.get('state')
   print 'login_sesion["state"] = %s' %login_session['state']
   if request.args.get('state') != login_session['state']:
@@ -178,7 +170,8 @@ def gconnect():
   flash("you are now logged in as %s"%login_session['username'])
   return output
 
-#Revoke current user's token and reset their login_session.
+# Revoke current user's token and reset their login_session, 
+# for the case when the user was logged in with google+ authentication.
 @app.route("/gdisconnect")
 def gdisconnect():
   
@@ -211,6 +204,10 @@ def gdisconnect():
     return response
 
 
+# Login the user using facebooks' authentication.
+# the 'state' parameter is used for csrf protection
+# the 'one time code' comes from facebooks's oauth2 server, and it's used to get credentials from facebook, including email and picture.
+# relevant parameters are stored in the login session for future requests.
 @app.route('/fbconnect', methods=['POST'])
 def fbconnect():
   print("In fbconnect")
@@ -274,6 +271,8 @@ def fbconnect():
   flash ("Now logged in as %s" % login_session['username'])
   return output
 
+# Revoke current user's token and reset their login_session, 
+# for the case when the user was logged in with facebook authentication.
 @app.route('/fbdisconnect')
 def fbdisconnect():
   facebook_id = login_session['facebook_id']
@@ -284,28 +283,32 @@ def fbdisconnect():
 
 #####
 
+# process a request to list all items in JSON format
 @app.route('/catalog/JSON')
 def catalogJSON():
     items = app.db_session.query(MenuItem).all()
     return jsonify(MenuItems=[i.serialize for i in items])
 
+# process a request to list all items in a category in JSON format
 @app.route('/category/<int:category_id>/menu/JSON')
 def categoryMenuJSON(category_id):
     category = app.db_session.query(Category).filter_by(id = category_id).one()
     items = app.db_session.query(MenuItem).filter_by(category_id = category_id).all()
     return jsonify(MenuItems=[i.serialize for i in items])
 
-
+# process a request to show details about an item
 @app.route('/category/<int:category_id>/menu/<int:menu_id>/JSON')
 def menuItemJSON(category_id, menu_id):
     Menu_Item = app.db_session.query(MenuItem).filter_by(id = menu_id).one()
     return jsonify(Menu_Item = Menu_Item.serialize)
 
+# process a request to return all categories in JSON format
 @app.route('/category/JSON')
 def categoriesJSON():
     categories = app.db_session.query(Category).all()
     return jsonify(categories= [r.serialize for r in categories])
 
+# Revoke current user's token and reset their login_session
 @app.route('/disconnect')
 def disconnect():
   if 'provider' in login_session:
@@ -505,13 +508,15 @@ def editMenuItem(menu_id):
 #Edit a menu item
 @app.route('/menu/<int:item_id>/', methods=['GET'])
 def showMenuItem(item_id):
-    print("in showMenuItem")
+    print("in editMenuItem")
+    if 'user_id' not in login_session:
+      return redirect('/login')
 
     Item = app.db_session.query(MenuItem).filter_by(id = item_id).first()
     if Item:
       category = app.db_session.query(Category).filter_by(id = Item.category_id).first()
       if category:
-        print("in showMenuItem: category: {}".format(category))
+        print("in editMenuItem: category: {}".format(category))
 
     # if login_session['user_id'] != editedItem.user_id:
     #   return "<script>function myFunction() {alert('You are not authorized to edit items you didn't create.');}</script><body onload='myFunction()''>"
@@ -524,7 +529,6 @@ def showMenuItem(item_id):
 def deleteMenuItem(menu_id):
     if 'user_id' not in login_session:
       return redirect('/login')
-    category = app.db_session.query(Category).filter_by(id = category_id).one()
     itemToDelete = app.db_session.query(MenuItem).filter_by(id = menu_id).one() 
     if login_session['user_id'] != itemToDelete.user_id:
       return "<script>function myFunction() {alert('You are not authorized to delete items you didn't create.');}</script><body onload='myFunction()''>"
@@ -537,6 +541,7 @@ def deleteMenuItem(menu_id):
         return render_template('deleteMenuItem.html', item = itemToDelete)
 
 
+# helper method to get a users's id in the database using email identifier
 def getUserID(email, db_session):
     try:
         user = db_session.query(User).filter_by(email = email).one()
@@ -545,11 +550,13 @@ def getUserID(email, db_session):
         return None
 
 
+# helper method to get a users's record in the database using id
 def getUserInfo(user_id, db_session):
     user = db_session.query(User).filter_by(id = user_id).first()
     return user
 
 
+# helper method to create a user from login_session data
 def createUser(login_session, db_session):
     newUser = User(name = login_session['username'], email = login_session['email'], picture = login_session['picture'])
     db_session.add(newUser)
@@ -571,19 +578,16 @@ def createUser(login_session, db_session):
 #   print ("in generate_csrf_token: token {}".format(login_session['_csrf_token']))
 #   return login_session['_csrf_token']
 
+# app.secret_key is here in plain view.  Perhaps set it as an environment variable on the server in production.
 if __name__ == '__main__':
+  app.secret_key = 'super_secret_key'
   WTF_CSRF_ENABLED = True
+  app.debug = True
   CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
   APPLICATION_NAME = "Category Menu Application"
-  # app.db_session = init('sqlite:///catalog.db').session
-  create_app()
-  Session = create_db(app)
-  session = app.db_session = Session()
+  app.db_session = init('sqlite:///catalog.db').session
   csrf.init_app(app)
-  app.secret_key = 'super_secret_key'
-  app.debug = True
-  app.config['UPLOAD_FOLDER'] = UPLOADS_FOLDER
   # app.jinja_env.globals['csrf_token'] = generate_csrf_token    
   # print("csrf_token: {}".format(csrf_token()))    
   app.run(host = '127.0.0.1', port = 5000)
