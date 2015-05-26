@@ -67,8 +67,10 @@
 			<a href = "{{url_for('showMenuItem', category_id = item.category_id, item_id = item.id)}}">
 				<h3>{{item.name}} - {{item.categoryName()}}</h3>
 			</a>
+			{%  if userid == item.user_id %}
 			<a href="{{url_for('editMenuItem', menu_id=item.id  ) }}">Edit</a> | 
 			<a href="{{url_for('deleteMenuItem', menu_id=item.id  ) }}">Delete</a>
+			{% endif %}
 		{% endfor %}
 	</div>
 {% endblock %}

@@ -61,8 +61,10 @@
 					<img src="{{ i.imageURL() }}" width="150" height="200" >
 					<p class="menu-price">Price: {{i.price}}</p>
 					<p>Category: {{i.categoryName()}}</p>
-					<a href="{{url_for('editMenuItem', menu_id=i.id  ) }}">Edit</a> | 
-					<a href="{{url_for('deleteMenuItem', menu_id=i.id  ) }}">Delete</a>
+					{%  if userid == i.user_id %}
+						<a href="{{url_for('editMenuItem', menu_id=i.id  ) }}">Edit</a> | 
+						<a href="{{url_for('deleteMenuItem', menu_id=i.id  ) }}">Delete</a>
+					{% endif %}
 				</div>
 			</div>
 		{% endfor %}

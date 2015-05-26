@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
  
 from database_setup import Category, Base, MenuItem, User
-from finalproject import app
+from project import app
 from flask.ext.sqlalchemy import SQLAlchemy
 from database_setup import  create_app, create_db
 

@@ -8,7 +8,6 @@ from sqlalchemy.orm import sessionmaker
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.engine.url import URL
-
 import settings
 
 # from finalproject import UPLOADS_FOLDER
@@ -21,11 +20,18 @@ Base = declarative_base()
 # db = SQLAlchemy(app)
 
 
+def create_app():
+    """Initializes the application."""
+    app = Flask(__name__)
+    app.config['SESSION_TYPE'] = 'filesystem'
+    return app
+
 def create_db(app):
     """
     Performs database connection using database settings from settings.py.
     Returns sqlalchemy engine instance
     """
+    print ("database: ".format(**settings.DATABASE))
     print ("in create_db: Database URL {}".format(URL(**settings.DATABASE)))
     engine = create_engine(URL(**settings.DATABASE))
     #create database session
@@ -161,6 +167,8 @@ class MenuItem(Base):
 if __name__ == '__main__':
     app = create_app()
     Session = create_db(app)
+    session = Session()
+    session.commit()
     # db.create_all()
     # db.session.commit()
     print("created tables")

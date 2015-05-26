@@ -22,6 +22,7 @@ from flask import make_response
 import requests
 import os
 from database_setup import Base, Category, MenuItem, User
+from database_setup import  create_db
 
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -45,6 +46,12 @@ def set_db_session(session):
 def set_login_session_user_id(userid):
   login_session['user_id'] = userid
   print ("In set_login_session_user_id: {}".format(login_session))
+
+def create_app():
+    """Initializes the application."""
+    app = Flask(__name__)
+    app.config['SESSION_TYPE'] = 'filesystem'
+    return app
 
 # helper method to initialize the database for the sqlAlchemy ORM
 def init(db_filename):
@@ -345,7 +352,7 @@ def showCategories():
   if 'username' not in login_session:
     return render_template('publiccategories.html', categories=categories, items = items)
   else:
-    return render_template('categories.html', categories = categories, items = items)
+    return render_template('categories.html', categories = categories, items = items, userid = login_session.get('user_id'))
 
 #Create a new category
 @app.route('/catalog/new/', methods=['GET','POST'])
@@ -411,10 +418,10 @@ def showMenu(category_id):
     print("login_session name: {}".format(login_session.get('username')))
 
     items = app.db_session.query(MenuItem).filter_by(category_id = category_id).all()
-    if 'username' not in login_session or not creator or creator.id != login_session['user_id']:
-      return render_template('publicmenu.html', items = items, category = category, creator= creator)
-    else:
-      return render_template('menu.html', items = items, category = category,creator = creator)
+    # if 'username' not in login_session or not creator or creator.id != login_session['user_id']:
+    #   return render_template('publicmenu.html', items = items, category = category, creator= creator)
+    # else:
+    return render_template('menu.html', items = items, category = category,creator = creator, userid = login_session.get('user_id'))
      
 
 
@@ -580,14 +587,21 @@ def createUser(login_session, db_session):
 
 # app.secret_key is here in plain view.  Perhaps set it as an environment variable on the server in production.
 if __name__ == '__main__':
+  # app = create_app()
   app.secret_key = 'super_secret_key'
   WTF_CSRF_ENABLED = True
+  # app.debug = False
   app.debug = True
   CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
   APPLICATION_NAME = "Category Menu Application"
-  app.db_session = init('sqlite:///catalog.db').session
+  print("****** about to create_db")
+  Session = create_db(app)
+  app.db_session = session = Session()
+  print("****** done creating create_db")
+  # app.db_session = init('sqlite:///catalog.db').session
   csrf.init_app(app)
   # app.jinja_env.globals['csrf_token'] = generate_csrf_token    
-  # print("csrf_token: {}".format(csrf_token()))    
-  app.run(host = '127.0.0.1', port = 5000)
+  # print("csrf_token: {}".format(csrf_token())) 
+  print("about to run")   
+  app.run(host = '0.0.0.0', port = 8000)
