@@ -516,8 +516,8 @@ def editMenuItem(menu_id):
 @app.route('/menu/<int:item_id>/', methods=['GET'])
 def showMenuItem(item_id):
     print("in editMenuItem")
-    if 'user_id' not in login_session:
-      return redirect('/login')
+    # if 'user_id' not in login_session:
+    #   return redirect('/login')
 
     Item = app.db_session.query(MenuItem).filter_by(id = item_id).first()
     if Item:
